@@ -2,11 +2,14 @@
 
 Interactive world map of cosmetic dentists and dental ceramists, part of the [Veery](https://veery.co) platform.
 
-**Live site:** https://veery-atlas.pplx.app
+## Live URLs
+
+- **Production:** https://veery-atlas.pplx.app (Perplexity-hosted)
+- **GitHub Pages preview:** https://daria22daria22.github.io/veery-atlas/ (auto-updates on every push)
 
 ## How it works
 
-The map is a single-page static site (`deploy/index.html`) that fetches its data at runtime from a Google Sheet:
+The map is a single-page static site (`index.html`) that fetches its data at runtime from a Google Sheet:
 
 - **Dentists tab** → cosmetic dentists with name, specialty, city/state/country, contact info, lat/lng
 - **Ceramists tab** → dental labs/studios with similar fields
@@ -16,24 +19,21 @@ Because data lives in the Sheet, you can add or edit entries without touching co
 ## Project structure
 
 ```
-deploy/
-├── index.html          # Main app (HTML + CSS + JS in one file)
-├── geo_us.json         # US state boundaries for the map
-├── geo_world.json      # World country boundaries
-└── npi/                # State-by-state NPI dentist shards (cached lookups)
-    ├── AK.json
-    ├── AL.json
-    └── ... (60 files)
+index.html          # Main app (HTML + CSS + JS in one file)
+geo_us.json         # US state boundaries
+geo_world.json      # World country boundaries
+npi/                # State-by-state NPI dentist shards (60 files)
 ```
 
-## Deployment
+## Editing
 
-Deployed on Perplexity's S3-backed hosting. The `site_id` for redeploys is `1847ca31-c75a-4758-8a16-8039e5b5f7de`.
+To change the map UI/behavior:
+1. Edit `index.html` directly on GitHub (pencil icon) or locally
+2. Commit to `main`
+3. Preview at https://daria22daria22.github.io/veery-atlas/ within ~30 seconds
+4. When happy, redeploy to production at veery-atlas.pplx.app (site_id `1847ca31-c75a-4758-8a16-8039e5b5f7de`)
 
-To update the live site after editing `deploy/index.html`:
-
-1. Make your changes locally
-2. Use Perplexity Computer's `deploy_website` + `publish_website` tools with the saved `site_id`
+To change the data (dentists/ceramists): edit the Google Sheet directly — no code changes needed.
 
 ## Data source
 
