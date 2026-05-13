@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+<title>Veery Atlas — Cosmetic Dentists & Ceramists</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<style>
+:root {
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --surface-alt: #FBFBF9;
+  --border: #D4D1CA;
+  --text: #28251D;
+  --text-muted: #7A7974;
+  --primary: #01696F;
+  --primary-hover: #0C4E54;
+  --celebrity: #C28B00;
+  --city-best: #B57E2A;
+  --ig: #8E3FBF;
+  --master: #01696F;
+  --ceramist-3: #A12C7B;
+  --ceramist-2: #C26EA0;
+  --ceramist-1: #D9A7C4;
+  --warning: #964219;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar */
+#sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 22px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.brand h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.brand .accent { color: var(--primary); }
+.brand .sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sync-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.sync-bar .sync-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sync-bar .sync-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.sync-bar .sync-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--text);
+}
+.sync-bar .sync-time.stale { color: var(--warning); }
+.sync-bar .refresh-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.sync-bar .refresh-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.sync-bar .refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.sync-bar .refresh-btn .spin {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+}
+.sync-bar .refresh-btn.loading .spin {
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.search-box {
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+}
+.search-box::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A7974' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 13px;
+  user-select: none;
+}
+.filter-row:hover { background: var(--surface-alt); }
+.filter-row.active {
+  background: var(--bg);
+  font-weight: 600;
+}
+.filter-row.inactive { opacity: 0.5; }
+.filter-row .check {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: all 0.12s;
+}
+.filter-row.active .check {
+  background: #0C4E54;
+  border-color: #0C4E54;
+}
+.filter-row.active .check::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.filter-row .only-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+.filter-row:hover .only-btn { opacity: 1; }
+.filter-row .only-btn:hover { background: var(--bg); color: var(--text); }
+.filter-row .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filter-row .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.filter-row .count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dot.master { background: var(--master); }
+.dot.celebrity { background: var(--celebrity); }
+.dot.city_best { background: var(--city-best); }
+.dot.ig_aesthetic { background: var(--ig); }
+.dot.score_3 { background: var(--ceramist-3); }
+.dot.score_2 { background: var(--ceramist-2); }
+.dot.score_1 { background: var(--ceramist-1); }
+.dot.ceramist { background: var(--ceramist-2); }
+.dot.npi { background: #8A8580; }
+
+.toggle-group {
+  display: flex;
+  background: var(--bg);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.toggle-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.stats {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat .num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  color: var(--primary);
+  line-height: 1;
+}
+.stat .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+#search-results {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+#search-results.visible { display: flex; }
+.result-item {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s;
+}
+.result-item:hover { background: var(--surface-alt); }
+.result-item .rname { font-weight: 500; }
+.result-item .rmeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Diagnostics panel */
+.diag {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.diag-head {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+.diag-head:hover { background: var(--surface-alt); }
+.diag-head .lhs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diag-head .badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--warning);
+  color: white;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.diag-head .badge.zero { background: var(--text-muted); }
+.diag-head .chev {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.diag.open .diag-head .chev { transform: rotate(90deg); }
+.diag-body {
+  display: none;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 12px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.diag.open .diag-body { display: block; }
+.diag-row {
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.diag-row:last-child { border-bottom: none; }
+.diag-row .rname { font-weight: 500; color: var(--text); }
+.diag-row .rmeta { color: var(--text-muted); }
+
+.footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.footer a { color: var(--primary); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+.footer strong { color: var(--text); }
+
+/* Map */
+#map {
+  width: 100%;
+  height: 100%;
+  background: #e8e7e0;
+}
+
+/* Custom marker */
+.custom-pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+.leaflet-popup-content {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  width: 280px !important;
+}
+.popup-card { padding: 16px; font-size: 13px; line-height: 1.5; }
+.popup-tier {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  color: white;
+}
+.popup-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+  color: var(--text);
+  line-height: 1.2;
+}
+.popup-loc {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.popup-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+}
+.popup-row:first-of-type { border-top: none; padding-top: 0; }
+.popup-row .lbl {
+  color: var(--text-muted);
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.popup-row .val { flex: 1; word-break: break-word; }
+.popup-row a { color: var(--primary); text-decoration: none; }
+.popup-row a:hover { text-decoration: underline; }
+.popup-celeb {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #fff8e6;
+  border-left: 3px solid var(--celebrity);
+  border-radius: 4px;
+  font-size: 12px;
+  font-style: italic;
+  color: #6b5a1c;
+}
+
+.tier-master { background: var(--master); }
+.tier-celebrity { background: var(--celebrity); }
+.tier-city_best { background: var(--city-best); }
+.tier-ig_aesthetic { background: var(--ig); }
+.tier-score_3 { background: var(--ceramist-3); }
+.tier-score_2 { background: var(--ceramist-2); }
+.tier-score_1 { background: var(--ceramist-1); color: #5a2944; }
+.tier-ceramist { background: var(--ceramist-2); }
+.tier-npi { background: #8A8580; color: #fff; }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 14px;
+  transition: opacity 0.3s;
+}
+#loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#loading .title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 28px;
+  color: var(--text);
+}
+#loading .subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+#error-banner {
+  display: none;
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  z-index: 1000;
+  max-width: 90%;
+}
+#error-banner.visible { display: block; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  #sidebar {
+    max-height: 55vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* Cluster styling — override default greens */
+.marker-cluster-small div { background-color: rgba(1,105,111,0.6); }
+.marker-cluster-small { background-color: rgba(1,105,111,0.3); }
+.marker-cluster-medium div { background-color: rgba(12,78,84,0.7); }
+.marker-cluster-medium { background-color: rgba(12,78,84,0.3); }
+.marker-cluster-large div { background-color: rgba(40,37,29,0.85); color: #fff; }
+.marker-cluster-large { background-color: rgba(40,37,29,0.3); }
+.marker-cluster div { color: white; font-weight: 600; font-family: 'Inter', sans-serif; }
+/* ============================================================
+   Google preview side panel
+   ============================================================ */
+.google-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 420px;
+  max-width: 90vw;
+  background: #fff;
+  box-shadow: -8px 0 24px rgba(0,0,0,.10);
+  display: flex;
+  flex-direction: column;
+  z-index: 1200;
+  transform: translateX(0);
+  transition: transform .25s ease;
+  border-left: 1px solid var(--border);
+}
+.google-panel.hidden { transform: translateX(100%); pointer-events: none; }
+
+.gp-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+}
+.gp-title-wrap { min-width: 0; flex: 1; }
+.gp-name { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; }
+.gp-loc  { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.gp-close {
+  background: transparent; border: none; font-size: 24px; line-height: 1;
+  color: var(--text-muted); cursor: pointer; padding: 0 4px;
+  flex: 0 0 auto;
+}
+.gp-close:hover { color: var(--text); }
+
+.gp-embed-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #f4f3ef;
+  border-bottom: 1px solid var(--border);
+}
+#gp-embed {
+  width: 100%; height: 100%; border: 0; display: block;
+}
+.gp-embed-fallback {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #f7f6f2;
+}
+.gp-embed-fallback.hidden { display: none; }
+#gp-embed.hidden { display: none; }
+
+.gp-actions {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 18px 8px;
+}
+.gp-btn {
+  display: block; padding: 10px 14px; border-radius: 8px;
+  text-decoration: none; font-size: 13px; font-weight: 500;
+  text-align: center;
+  border: 1px solid transparent;
+  transition: opacity .15s ease, transform .05s ease;
+}
+.gp-btn:hover { opacity: .92; }
+.gp-btn:active { transform: translateY(1px); }
+.gp-google      { background: #1a73e8; color: #fff; }
+.gp-yelp        { background: #d32323; color: #fff; }
+.gp-hg          { background: #19427a; color: #fff; }
+
+.gp-footnote {
+  font-size: 11px; color: var(--text-muted); padding: 4px 18px 16px; line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .google-panel { width: 100%; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="title">Veery <span style="color:#01696F">Atlas</span></div>
+  <div class="subtitle" id="loading-subtitle">Loading from live Sheet…</div>
+</div>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <h1>Veery <span class="accent">Atlas</span></h1>
+      <span class="sub">live</span>
+    </div>
+
+    <div class="sync-bar">
+      <div class="sync-info">
+        <span class="sync-label">Last synced</span>
+        <span class="sync-time" id="sync-time">—</span>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" title="Pull latest from Google Sheet">
+        <span class="spin"></span> Refresh
+      </button>
+    </div>
+
+    <a href="https://docs.google.com/spreadsheets/d/18h16EEURItsTQh08OMDgyc-UWrZE1odhi_asRfnrqgs/edit" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 4px;padding:10px 14px;background:#01696F;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.02em;transition:background .15s ease;" onmouseover="this.style.background='#0C4E54'" onmouseout="this.style.background='#01696F'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Edit data in Google Sheet
+    </a>
+    <a href="https://drive.google.com/drive/folders/1GyASnzcTqYuVz1AwF9uEas44wh6zx3xA" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;padding:8px 12px;background:transparent;color:#01696F;border:1px solid #D4D1CA;border-radius:8px;text-decoration:none;font-weight:500;font-size:12px;">
+      📁 Open Drive folder
+    </a>
+
+    <div class="search-box">
+      <input id="search" type="text" placeholder="Search by name, practice, or city…" autocomplete="off" />
+    </div>
+    <div id="search-results"></div>
+
+    <div>
+      <div class="section-title">Show</div>
+      <div class="toggle-group" id="type-toggle">
+        <button class="toggle-btn active" data-type="all">All</button>
+        <button class="toggle-btn" data-type="dentist">Dentists</button>
+        <button class="toggle-btn" data-type="ceramist">Ceramists</button>
+        <button class="toggle-btn" data-type="npi">NPI</button>
+      </div>
+    </div>
+
+    <div id="curated-tier-section">
+      <div class="section-title">Dentist tier</div>
+      <div class="filter-group" id="dentist-filters"></div>
+    </div>
+
+    <div id="curated-ceramist-section">
+      <div class="section-title">Ceramist score</div>
+      <div class="filter-group" id="ceramist-filters"></div>
+    </div>
+
+    <div id="npi-section" style="border-top:1px solid var(--border);padding-top:16px">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>NPI Registry · all US dentists</span>
+        <span id="npi-count" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px">—</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.4">376,948 dentists from CMS NPI Registry (Apr 2026). Use freshness filter below to focus on active vs. retired. Loads ~74MB.</div>
+      <button id="npi-load-all" style="width:100%;padding:8px 12px;background:#8A8580;color:#fff;border:none;border-radius:6px;font-weight:500;font-size:12px;cursor:pointer;letter-spacing:0.02em">Load all states</button>
+      <div id="npi-state-picker" style="display:none;margin-top:8px">
+        <select id="npi-state" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff">
+          <option value="">— Add a state —</option>
+        </select>
+      </div>
+      <div id="npi-loaded-states" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
+      <div id="npi-freshness-filters" style="margin-top:14px"></div>
+      <div id="npi-specialty-filters" style="margin-top:14px"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num" id="stat-visible">—</div>
+        <div class="label">Showing</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-total">—</div>
+        <div class="label">Total</div>
+      </div>
+    </div>
+
+    <div class="diag" id="diag">
+      <div class="diag-head" id="diag-head">
+        <span class="lhs">
+          <span style="font-weight:600">Couldn't geocode</span>
+          <span class="badge zero" id="diag-badge">0</span>
+        </span>
+        <span class="chev">▶</span>
+      </div>
+      <div class="diag-body" id="diag-body"></div>
+    </div>
+
+    <div style="margin-top:4px">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Data gaps</span>
+        <span id="gaps-summary" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:11px">—</span>
+      </div>
+      <div id="gaps-list"></div>
+    </div>
+
+    <div class="footer">
+      <strong>Veery Atlas</strong> — interactive map of US cosmetic dentists and worldwide elite ceramists.<br/>
+      Data lives in <a href="https://docs.google.com/spreadsheets/d/18h16EEURItsTQh08OMDgyc-UWrZE1odhi_asRfnrqgs/edit" target="_blank" rel="noopener">Veery Atlas Master</a> on Google Drive. Edit the Sheet → click Refresh. Built for <a href="https://veery.co" target="_blank" rel="noopener">veery.co</a>.
+    </div>
+  </aside>
+
+  <main id="map">
+    <div id="error-banner"></div>
+  </main>
+
+  <!-- Slide-in side panel for Google Maps embed + deep links -->
+  <aside id="google-panel" class="google-panel hidden" aria-hidden="true">
+    <div class="gp-header">
+      <div class="gp-title-wrap">
+        <div class="gp-name" id="gp-name"></div>
+        <div class="gp-loc" id="gp-loc"></div>
+      </div>
+      <button id="gp-close" class="gp-close" aria-label="Close">×</button>
+    </div>
+    <div class="gp-embed-wrap">
+      <iframe id="gp-embed" referrerpolicy="no-referrer-when-downgrade" allowfullscreen loading="lazy"></iframe>
+      <div id="gp-embed-fallback" class="gp-embed-fallback hidden">
+        <div style="font-size:13px;color:var(--text-muted);text-align:center;padding:28px 16px;line-height:1.5">
+          Live Google preview will appear here once a Google Maps API key is configured.<br><br>
+          For now, use the buttons below to open ratings on Google, Yelp, or Healthgrades.
+        </div>
+      </div>
+    </div>
+    <div class="gp-actions">
+      <a id="gp-google"      class="gp-btn gp-google"      target="_blank" rel="noopener">View on Google Maps ↗</a>
+      <a id="gp-yelp"        class="gp-btn gp-yelp"        target="_blank" rel="noopener">View on Yelp ↗</a>
+      <a id="gp-healthgrades" class="gp-btn gp-hg"          target="_blank" rel="noopener">View on Healthgrades ↗</a>
+    </div>
+    <div class="gp-footnote">Real-time ratings shown on each platform. Click pins inside the Google preview to see the star rating.</div>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+// ============================================================
+// CONFIG — Live CSV URLs from Google Sheet
+// Sheet: Veery Atlas Master (anyone-with-link can view)
+// Format: /export?format=csv&gid=N — reads current Sheet content live
+// ============================================================
+const SHEET_ID = "18h16EEURItsTQh08OMDgyc-UWrZE1odhi_asRfnrqgs";
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+const CSV_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+const CSV_DENTISTS = `${CSV_BASE}&gid=1211378032`;
+const CSV_CERAMISTS = `${CSV_BASE}&gid=867396264`;
+const CSV_SETTINGS = `${CSV_BASE}&gid=857316311`;
+
+const TIER_LABELS = {
+  master: { label: 'Credentialed master', color: '#01696F' },
+  celebrity: { label: 'Celebrity / editorial', color: '#C28B00' },
+  city_best: { label: 'City best-of', color: '#B57E2A' },
+  ig_aesthetic: { label: 'IG aesthetic', color: '#8E3FBF' },
+  score_3: { label: 'Score 3 — master ceramist', color: '#A12C7B' },
+  score_2: { label: 'Score 2 — strong', color: '#C26EA0' },
+  score_1: { label: 'Score 1 — mixed', color: '#D9A7C4' },
+  ceramist: { label: 'Ceramist (other)', color: '#C26EA0' },
+  npi: { label: 'NPI Registry', color: '#8A8580' },
+};
+
+// NPI specialty code → display + distinct color (13 specialties)
+// Cosmetic-adjacent specialties (Prosthodontics, Orthodontics, Periodontics) get warm/saturated tones
+// General/common specialties get muted neutrals; rare ones get distinct accents
+const NPI_SPECIALTIES = {
+  GP:  { label: 'General Practice',                color: '#8A8580' },
+  DDS: { label: 'Dentist',                         color: '#B0ABA4' },
+  ORT: { label: 'Orthodontics',                    color: '#0099A8' },
+  PED: { label: 'Pediatric Dentistry',             color: '#5BA85F' },
+  OMS: { label: 'Oral & Maxillofacial Surgery',    color: '#D14B3C' },
+  END: { label: 'Endodontics',                     color: '#2D4A8A' },
+  PER: { label: 'Periodontics',                    color: '#7A4FB5' },
+  PRO: { label: 'Prosthodontics',                  color: '#C28B00' },
+  PUB: { label: 'Dental Public Health',            color: '#5C7A4F' },
+  PTH: { label: 'Oral & Max. Pathology',           color: '#8B5A2B' },
+  ANS: { label: 'Dentist Anesthesiologist',        color: '#D4647F' },
+  OFP: { label: 'Orofacial Pain',                  color: '#C45A00' },
+  RAD: { label: 'Oral & Max. Radiology',           color: '#3F8B7A' },
+};
+const NPI_CODES = Object.keys(NPI_SPECIALTIES);
+
+// Map free-text Tier strings from the Sheet to internal tier keys
+const TIER_NORMALIZE = (() => {
+  const m = new Map();
+  const add = (variants, key) => variants.forEach(v => m.set(v.toLowerCase(), key));
+  add(['credentialed master', 'master'], 'master');
+  add(['celebrity / editorial', 'celebrity', 'editorial'], 'celebrity');
+  add(['city best-of', 'city best of', 'best-of', 'city best'], 'city_best');
+  add(['ig aesthetic', 'instagram', 'ig'], 'ig_aesthetic');
+  add(['score 3 — master', 'score 3 - master', 'score 3', '3'], 'score_3');
+  add(['score 2 — strong', 'score 2 - strong', 'score 2', '2'], 'score_2');
+  add(['score 1 — mixed', 'score 1 - mixed', 'score 1', '1'], 'score_1');
+  add(['ceramist'], 'ceramist');
+  add(['npi registry', 'npi'], 'npi');
+  return m;
+})();
+
+function tierKey(tier) {
+  if (!tier) return null;
+  const k = TIER_NORMALIZE.get(String(tier).trim().toLowerCase());
+  return k || null;
+}
+
+// ============================================================
+// Google Maps Embed API key
+// ------------------------------------------------------------
+// Paste your Google Maps Embed API key below to enable the live
+// Google preview inside the side panel. Until then the panel
+// shows deep-link buttons only (which work for every dentist).
+// Get one at: https://console.cloud.google.com  (enable
+// "Maps Embed API" — it's free and unlimited).
+// ============================================================
+const GOOGLE_EMBED_API_KEY = ''; // <-- paste key here
+
+// ============================================================
+// State
+// ============================================================
+let allRecords = [];
+let map, clusterGroup;
+let activeType = 'all';
+let activeTiers = new Set();
+let geoUS = null, geoWorld = null;
+let unmappable = [];   // rows we couldn't geocode
+let settings = { center: [37.5, -96], zoom: 4, cluster: true, title: 'Veery Atlas' };
+
+// ============================================================
+// Geocoding helpers
+// ============================================================
+function norm(s) {
+  if (!s) return '';
+  s = String(s).toLowerCase().trim();
+  s = s.split(/[,(/]/)[0].trim();
+  s = s.replace(/\s+/g, ' ');
+  return s;
+}
+
+// Generate variant city keys to try
+function cityVariants(cityRaw) {
+  const base = norm(cityRaw);
+  const set = new Set([base, cityRaw.toLowerCase().trim()]);
+  // Strip parenthetical commentary: "Nagoya (born; now Monterey)" -> "nagoya"
+  const stripParen = base.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (stripParen) set.add(stripParen);
+  // Strip after slash: "Sao Paulo / USA" -> "sao paulo"
+  if (base.includes('/')) set.add(base.split('/')[0].trim());
+  // Strip after dash: "Munich - Germany" -> "munich"
+  if (base.includes(' - ')) set.add(base.split(' - ')[0].trim());
+  // Strip province/state suffix: "São Paulo, SP" -> "são paulo"
+  if (base.includes(',')) set.add(base.split(',')[0].trim());
+  // Repeat strips on the parenthetical-stripped version
+  if (stripParen.includes(',')) set.add(stripParen.split(',')[0].trim());
+  // Mt./Mt -> Mount
+  if (/^mt\.?\s/i.test(base)) set.add(base.replace(/^mt\.?\s/i, 'mount '));
+  if (/^mount\s/i.test(base)) set.add(base.replace(/^mount\s/i, 'mt. ').trim());
+  // St. -> Saint
+  if (/^st\.?\s/i.test(base)) set.add(base.replace(/^st\.?\s/i, 'saint '));
+  if (/^saint\s/i.test(base)) set.add(base.replace(/^saint\s/i, 'st. '));
+  // Strip trailing " township" / " twp"
+  set.add(base.replace(/\s+(township|twp\.?)$/i, ''));
+  // Strip leading "the "
+  if (base.startsWith('the ')) set.add(base.slice(4));
+  // Common diacritic strips: são -> sao, ã -> a, é -> e, etc.
+  const noAccents = base.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (noAccents !== base) set.add(noAccents);
+  return [...set].filter(Boolean);
+}
+
+function geocode(rec) {
+  // Returns [lat,lng,method] or null. Records with explicit Lat/Lng win.
+  const lat = parseFloat(rec.Lat || rec.lat);
+  const lng = parseFloat(rec.Lng || rec.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) {
+    return [lat, lng, 'explicit'];
+  }
+
+  const country = (rec.Country || rec.country || '').trim();
+  const stateRaw = (rec.State || rec.state || '').trim();
+  const cityRaw = (rec.City || rec.city || '').trim();
+
+  // US path
+  const isUS = !country || /^(usa|u\.s\.a\.|us|united states)$/i.test(country);
+  if (isUS && stateRaw && geoUS) {
+    const stateUC = stateRaw.toUpperCase();
+    if (cityRaw) {
+      for (const v of cityVariants(cityRaw)) {
+        const key = `${stateUC}|${v}`;
+        if (geoUS[key]) return [...geoUS[key], 'us_city'];
+      }
+    }
+    // State centroid fallback
+    if (geoUS.__states__ && geoUS.__states__[stateUC]) {
+      return [...geoUS.__states__[stateUC], 'us_state'];
+    }
+  }
+
+  // World path
+  if (geoWorld && country) {
+    const ckey = country.toLowerCase();
+    let iso = geoWorld.aliases?.[ckey];
+    if (!iso) {
+      // try first segment of country (handles "Italy / USA" etc)
+      const first = ckey.split(/[,/]/)[0].trim();
+      iso = geoWorld.aliases?.[first];
+    }
+    if (iso) {
+      if (cityRaw) {
+        for (const v of cityVariants(cityRaw)) {
+          const key = `${iso}|${v}`;
+          if (geoWorld.cities[key]) return [...geoWorld.cities[key], 'world_city'];
+        }
+      }
+      // fallback: country centroid
+      if (geoWorld.countries[iso]) return [...geoWorld.countries[iso], 'country_centroid'];
+    }
+  }
+
+  return null;
+}
+
+// Slightly jitter coincident points so clusters can spread them
+function jitter([lat, lng], idx, r = 0.003) {
+  const a = (idx * 0.6180339887) % 1; // golden-ratio for even spread
+  // Spiral outward so multiple low-precision points don't all sit on the same circle
+  const radius = r * (0.5 + (idx % 50) / 50);
+  return [lat + Math.cos(a * 6.283) * radius, lng + Math.sin(a * 6.283) * radius];
+}
+
+// ============================================================
+// CSV loading
+// ============================================================
+function fetchCSV(url, force) {
+  const u = force ? `${url}&_=${Date.now()}` : url;
+  return new Promise((resolve, reject) => {
+    Papa.parse(u, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: (res) => resolve(res.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+async function loadGeo() {
+  if (geoUS && geoWorld) return;
+  const [us, world] = await Promise.all([
+    fetch('geo_us.json').then(r => r.json()),
+    fetch('geo_world.json').then(r => r.json()),
+  ]);
+  geoUS = us;
+  geoWorld = world;
+}
+
+async function loadData(force = false) {
+  setLoadingMsg(force ? 'Refreshing from Google Sheet…' : 'Loading from live Sheet…');
+
+  const [dentRows, ceramRows, settingsRows] = await Promise.all([
+    fetchCSV(CSV_DENTISTS, force).catch(e => { console.error('Dentists', e); return []; }),
+    fetchCSV(CSV_CERAMISTS, force).catch(e => { console.error('Ceramists', e); return []; }),
+    fetchCSV(CSV_SETTINGS, force).catch(e => { console.error('Settings', e); return []; }),
+  ]);
+
+  // Settings (key/value rows)
+  for (const r of settingsRows) {
+    const k = (r.Setting || '').trim().toLowerCase();
+    const v = (r.Value || '').trim();
+    if (!k || !v) continue;
+    if (k === 'default lat') settings.center[0] = parseFloat(v) || settings.center[0];
+    if (k === 'default lng') settings.center[1] = parseFloat(v) || settings.center[1];
+    if (k === 'default zoom') settings.zoom = parseInt(v) || settings.zoom;
+    if (k === 'show clusters') settings.cluster = /^true|yes|1$/i.test(v);
+    if (k === 'map title') settings.title = v;
+  }
+
+  // Build unified records
+  unmappable = [];
+  const recs = [];
+  let idx = 0;
+
+  dentRows.forEach((row) => {
+    if (!row.Name || !row.Name.trim()) return;
+    const tier = tierKey(row.Tier) || 'master';
+    const result = geocode(row);
+    const coord = result ? [result[0], result[1]] : null;
+    const method = result ? result[2] : null;
+    const rec = {
+      type: 'dentist',
+      tier,
+      name: row.Name.trim(),
+      city: (row.City || '').trim(),
+      state: (row.State || '').trim(),
+      country: (row.Country || '').trim() || 'USA',
+      practice: (row.Practice || '').trim(),
+      address: (row.Address || '').trim(),
+      phone: (row.Phone || '').trim(),
+      email: (row.Email || '').trim(),
+      website: (row.Website || '').trim(),
+      instagram: (row.Instagram || '').trim(),
+      awards: (row.Awards || '').trim(),
+      year: (row.Year || '').trim(),
+      celebrity_clients: (row['Celebrity Clients'] || '').trim(),
+      sources: (row.Sources || '').trim(),
+      source_url: (row['Source URL'] || '').trim(),
+    };
+    if (coord) {
+      // For low-precision results (state/country centroid), apply larger jitter so dots spread out
+      const jitterAmount = (method === 'us_state' || method === 'country_centroid') ? 0.4 : 0.003;
+      const [la, ln] = jitter(coord, idx++, jitterAmount);
+      rec.lat = la; rec.lng = ln;
+      rec._geo_method = method;
+      recs.push(rec);
+    } else {
+      unmappable.push({ ...rec, _why: locDesc(row) });
+    }
+  });
+
+  ceramRows.forEach((row) => {
+    if (!row.Name || !row.Name.trim()) return;
+    const tier = tierKey(row.Tier) || 'ceramist';
+    const result = geocode(row);
+    const coord = result ? [result[0], result[1]] : null;
+    const method = result ? result[2] : null;
+    const rec = {
+      type: 'ceramist',
+      tier,
+      name: row.Name.trim(),
+      city: (row.City || '').trim(),
+      state: '',
+      country: (row.Country || '').trim(),
+      lab: (row.Lab || '').trim(),
+      specialty: (row.Specialty || '').trim(),
+      materials: (row.Materials || '').trim(),
+      style: (row.Style || '').trim(),
+      phone: (row.Phone || '').trim(),
+      email: (row.Email || '').trim(),
+      website: (row.Website || '').trim(),
+      instagram: (row.Instagram || '').trim(),
+      sources: (row.Sources || '').trim(),
+      how_discovered: (row['How Discovered'] || '').trim(),
+    };
+    if (coord) {
+      const jitterAmount = (method === 'us_state' || method === 'country_centroid') ? 0.4 : 0.003;
+      const [la, ln] = jitter(coord, idx++, jitterAmount);
+      rec.lat = la; rec.lng = ln;
+      rec._geo_method = method;
+      recs.push(rec);
+    } else {
+      unmappable.push({ ...rec, _why: locDesc(row) });
+    }
+  });
+
+  allRecords = recs;
+}
+
+function locDesc(row) {
+  const c = (row.City || '').trim();
+  const s = (row.State || '').trim();
+  const co = (row.Country || '').trim();
+  return [c, s, co].filter(Boolean).join(', ') || '(no location)';
+}
+
+// ============================================================
+// UI
+// ============================================================
+function setLoadingMsg(msg) {
+  const el = document.getElementById('loading-subtitle');
+  if (el) el.textContent = msg;
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 6000);
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+         ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function setSyncedNow() {
+  const t = document.getElementById('sync-time');
+  const now = new Date();
+  t.textContent = fmtTime(now);
+  t.classList.remove('stale');
+}
+
+function initMap() {
+  map = L.map('map', {
+    center: settings.center,
+    zoom: settings.zoom,
+    minZoom: 2,
+    maxZoom: 18,
+    worldCopyJump: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: settings.cluster ? 50 : 0,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    chunkedLoading: true,
+  });
+  map.addLayer(clusterGroup);
+}
+
+function buildFilters() {
+  const counts = {};
+  for (const r of allRecords) counts[r.tier] = (counts[r.tier] || 0) + 1;
+
+  const dentistTiers = ['master', 'celebrity', 'city_best', 'ig_aesthetic'];
+  const ceramistTiers = ['score_3', 'score_2', 'score_1', 'ceramist'];
+
+  const dentistEl = document.getElementById('dentist-filters');
+  const ceramistEl = document.getElementById('ceramist-filters');
+  dentistEl.innerHTML = '';
+  ceramistEl.innerHTML = '';
+  activeTiers = new Set();
+
+  for (const t of dentistTiers) {
+    if (!counts[t]) continue;
+    activeTiers.add(t);
+    dentistEl.appendChild(makeFilterRow(t, counts[t]));
+  }
+  for (const t of ceramistTiers) {
+    if (!counts[t]) continue;
+    activeTiers.add(t);
+    ceramistEl.appendChild(makeFilterRow(t, counts[t]));
+  }
+}
+
+function makeFilterRow(tier, count) {
+  const row = document.createElement('div');
+  row.className = 'filter-row active';
+  row.dataset.tier = tier;
+  row.innerHTML = `
+    <div class="left">
+      <span class="dot ${tier}"></span>
+      <span>${TIER_LABELS[tier].label}</span>
+    </div>
+    <span class="count">${count.toLocaleString()}</span>
+  `;
+  row.addEventListener('click', () => {
+    if (activeTiers.has(tier)) {
+      activeTiers.delete(tier);
+      row.classList.remove('active');
+      row.classList.add('inactive');
+    } else {
+      activeTiers.add(tier);
+      row.classList.add('active');
+      row.classList.remove('inactive');
+    }
+    applyFilters();
+  });
+  return row;
+}
+
+function applyFilters() {
+  clusterGroup.clearLayers();
+  const markers = [];
+  let visible = 0;
+  // Curated records (Sheet)
+  if (activeType === 'all' || activeType === 'dentist' || activeType === 'ceramist') {
+    for (const r of allRecords) {
+      if (activeType !== 'all' && r.type !== activeType) continue;
+      if (!activeTiers.has(r.tier)) continue;
+      visible++;
+      markers.push(makeMarker(r));
+    }
+  }
+  // NPI records — always rendered when type is 'all' or 'npi'; filtered by specialty + freshness
+  if (activeType === 'all' || activeType === 'npi') {
+    for (const r of npiRecords) {
+      if (!activeNPISpecialties.has(r.spCode)) continue;
+      if (!activeNPIFreshness.has(r.freshness)) continue;
+      visible++;
+      markers.push(makeMarker(r));
+    }
+  }
+  clusterGroup.addLayers(markers);
+  document.getElementById('stat-visible').textContent = visible.toLocaleString();
+  const total = allRecords.length + npiRecords.length;
+  document.getElementById('stat-total').textContent = total.toLocaleString();
+}
+
+function makeMarker(r) {
+  let color = TIER_LABELS[r.tier]?.color || '#7A7974';
+  if (r.type === 'npi' && r.spCode && NPI_SPECIALTIES[r.spCode]) {
+    color = NPI_SPECIALTIES[r.spCode].color;
+  }
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="custom-pin" style="background:${color}"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+  const m = L.marker([r.lat, r.lng], { icon });
+  m.bindPopup(() => buildPopup(r), { maxWidth: 320, minWidth: 280 });
+  m.on('popupopen', () => openGooglePanel(r));
+  m._record = r;
+  return m;
+}
+
+// ============================================================
+// Google preview side panel
+// ============================================================
+function openGooglePanel(r) {
+  const panel = document.getElementById('google-panel');
+  if (!panel) return;
+
+  const name = r.name || 'Dentist';
+  const loc = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ');
+  document.getElementById('gp-name').textContent = name;
+  document.getElementById('gp-loc').textContent  = loc;
+
+  // Build a clean search query: name + address (or city/state) for best match
+  const queryParts = [name];
+  if (r.address) queryParts.push(r.address);
+  if (r.city) queryParts.push(r.city);
+  if (r.state) queryParts.push(r.state);
+  const q = encodeURIComponent(queryParts.join(' '));
+
+  // Embed iframe (only if API key present)
+  const iframe = document.getElementById('gp-embed');
+  const fallback = document.getElementById('gp-embed-fallback');
+  if (GOOGLE_EMBED_API_KEY) {
+    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(GOOGLE_EMBED_API_KEY)}&q=${q}&zoom=16`;
+    iframe.src = embedUrl;
+    iframe.classList.remove('hidden');
+    fallback.classList.add('hidden');
+  } else {
+    iframe.removeAttribute('src');
+    iframe.classList.add('hidden');
+    fallback.classList.remove('hidden');
+  }
+
+  // Deep links to real rating pages
+  document.getElementById('gp-google').href = `https://www.google.com/maps/search/?api=1&query=${q}`;
+  document.getElementById('gp-yelp').href = `https://www.yelp.com/search?find_desc=${encodeURIComponent(name)}&find_loc=${encodeURIComponent([r.city, r.state].filter(Boolean).join(', ') || '')}`;
+  document.getElementById('gp-healthgrades').href = `https://www.healthgrades.com/usearch?what=${encodeURIComponent(name)}&where=${encodeURIComponent([r.city, r.state].filter(Boolean).join(', ') || '')}`;
+
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden', 'false');
+}
+
+function closeGooglePanel() {
+  const panel = document.getElementById('google-panel');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden', 'true');
+  const iframe = document.getElementById('gp-embed');
+  if (iframe) iframe.removeAttribute('src'); // stop loading / save bandwidth
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const closeBtn = document.getElementById('gp-close');
+  if (closeBtn) closeBtn.addEventListener('click', closeGooglePanel);
+  // Close on Escape
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGooglePanel(); });
+});
+
+function buildPopup(r) {
+  const tierInfo = TIER_LABELS[r.tier] || { label: r.tier, color: '#7A7974' };
+  const loc = [r.city, r.state, r.country].filter(Boolean).join(', ');
+  const rows = [];
+
+  if (r.practice || r.lab) rows.push(['Practice', r.practice || r.lab]);
+  if (r.specialty) rows.push(['Specialty', r.specialty]);
+  if (r.materials) rows.push(['Materials', r.materials]);
+  if (r.style) rows.push(['Style', r.style]);
+  if (r.address) rows.push(['Address', r.address]);
+  if (r.phone) rows.push(['Phone', `<a href="tel:${escapeAttr(r.phone)}">${escapeHtml(r.phone)}</a>`]);
+  if (r.email) rows.push(['Email', `<a href="mailto:${escapeAttr(r.email)}">${escapeHtml(r.email)}</a>`]);
+  if (r.website) {
+    const url = r.website.startsWith('http') ? r.website : 'https://' + r.website;
+    const display = url.replace(/^https?:\/\//,'').replace(/\/$/,'');
+    rows.push(['Website', `<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(display)}</a>`]);
+  }
+  if (r.instagram) {
+    let h = r.instagram.replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/\/$/,'');
+    rows.push(['Instagram', `<a href="https://instagram.com/${escapeAttr(h)}" target="_blank" rel="noopener">@${escapeHtml(h)}</a>`]);
+  }
+  if (r.awards) rows.push(['Awards', escapeHtml(r.awards) + (r.year ? ` (${escapeHtml(r.year)})` : '')]);
+  if (r.sources) rows.push(['Sources', escapeHtml(r.sources)]);
+  if (r.source_url) rows.push(['Source', `<a href="${escapeAttr(r.source_url)}" target="_blank" rel="noopener">view</a>`]);
+  if (r.how_discovered) rows.push(['Notes', escapeHtml(r.how_discovered)]);
+  if (r.npi_id) rows.push(['NPI', `<a href="https://npiregistry.cms.hhs.gov/provider-view/${escapeAttr(r.npi_id)}" target="_blank" rel="noopener">${escapeHtml(r.npi_id)}</a>`]);
+
+  const rowsHtml = rows.map(([l, v]) => `<div class="popup-row"><div class="lbl">${l}</div><div class="val">${v}</div></div>`).join('');
+  const celebHtml = r.celebrity_clients ? `<div class="popup-celeb">${escapeHtml(r.celebrity_clients)}</div>` : '';
+
+  return `
+    <div class="popup-card">
+      <span class="popup-tier tier-${r.tier}">${escapeHtml(tierInfo.label)}</span>
+      <div class="popup-name">${escapeHtml(r.name)}</div>
+      <div class="popup-loc">${escapeHtml(loc)}</div>
+      ${rowsHtml}
+      ${celebHtml}
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// ============================================================
+// Diagnostics panel
+// ============================================================
+// ============================================================
+// Data Gaps — show entries missing key fields (Practice, Email, Website, Instagram)
+// ============================================================
+const GAP_TYPES = [
+  { key: 'practice',  label: 'Missing practice/lab name', test: r => !((r.type==='dentist' ? r.practice : r.lab) || '').trim() },
+  { key: 'email',     label: 'Missing email',             test: r => !(r.email || '').trim() },
+  { key: 'website',   label: 'Missing website',           test: r => !(r.website || '').trim() },
+  { key: 'instagram', label: 'Missing Instagram',         test: r => !(r.instagram || '').trim() },
+  { key: 'city',      label: 'Missing city',              test: r => !(r.city || '').trim() },
+];
+
+function buildGaps() {
+  const list = document.getElementById('gaps-list');
+  const summary = document.getElementById('gaps-summary');
+  if (!list) return;
+  list.innerHTML = '';
+
+  // Build sets of missing-by-type, scoped to whatever the user is currently showing (dentist/ceramist/all)
+  const scope = allRecords.filter(r => activeType === 'all' || r.type === activeType);
+  const totalScope = scope.length;
+  let totalMissing = 0;
+
+  GAP_TYPES.forEach(g => {
+    const missing = scope.filter(g.test);
+    totalMissing += missing.length;
+    const wrap = document.createElement('div');
+    wrap.className = 'diag';
+    wrap.style.marginBottom = '6px';
+    const pct = totalScope ? ((missing.length / totalScope) * 100).toFixed(1) : '0';
+    wrap.innerHTML = `
+      <div class="diag-head">
+        <span class="lhs">
+          <span style="font-weight:600">${g.label}</span>
+          <span class="badge${missing.length===0?' zero':''}">${missing.length.toLocaleString()}</span>
+          <span style="color:var(--text-muted);font-size:11px;margin-left:4px">${pct}%</span>
+        </span>
+        <span class="chev">▶</span>
+      </div>
+      <div class="diag-body"></div>
+    `;
+    const head = wrap.querySelector('.diag-head');
+    const body = wrap.querySelector('.diag-body');
+    head.addEventListener('click', () => {
+      wrap.classList.toggle('open');
+      if (wrap.classList.contains('open') && !body.dataset.filled) {
+        renderGapList(body, missing);
+        body.dataset.filled = '1';
+      }
+    });
+    list.appendChild(wrap);
+  });
+
+  summary.textContent = totalScope
+    ? `${totalMissing.toLocaleString()} gaps across ${totalScope.toLocaleString()} ${activeType==='all'?'entries':activeType+'s'}`
+    : '—';
+}
+
+function renderGapList(body, missing) {
+  if (!missing.length) {
+    body.innerHTML = `<div style="padding:8px 0;color:var(--text-muted);font-style:italic">All filled in. </div>`;
+    return;
+  }
+  // Sort: ceramists by name, dentists by tier rank then name
+  const tierRank = { celebrity: 0, master: 1, city_best: 2, ig_aesthetic: 3, score_3: 0, score_2: 1, score_1: 2, ceramist: 3 };
+  const sorted = [...missing].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'dentist' ? -1 : 1;
+    const ra = tierRank[a.tier] ?? 9, rb = tierRank[b.tier] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  const cap = 300;
+  sorted.slice(0, cap).forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'diag-row';
+    div.style.cursor = 'pointer';
+    const loc = [r.city, r.state, r.country].filter(Boolean).join(', ') || '(no location)';
+    const tierLabel = TIER_LABELS[r.tier]?.label || r.tier;
+    div.innerHTML = `
+      <div class="rname">${escapeHtml(r.name)}</div>
+      <div class="rmeta">${escapeHtml(r.type)} · ${escapeHtml(tierLabel)} · ${escapeHtml(loc)}</div>
+    `;
+    div.addEventListener('click', () => {
+      if (r.lat && r.lng) {
+        map.setView([r.lat, r.lng], 13, { animate: true });
+        setTimeout(() => {
+          clusterGroup.eachLayer(m => {
+            if (m._record === r) clusterGroup.zoomToShowLayer(m, () => m.openPopup());
+          });
+        }, 300);
+      }
+    });
+    body.appendChild(div);
+  });
+  if (sorted.length > cap) {
+    const more = document.createElement('div');
+    more.className = 'diag-row';
+    more.style.color = 'var(--text-muted)';
+    more.style.fontStyle = 'italic';
+    more.textContent = `…and ${(sorted.length - cap).toLocaleString()} more (full list in Sheet)`;
+    body.appendChild(more);
+  }
+}
+
+function buildDiagnostics() {
+  const badge = document.getElementById('diag-badge');
+  const body = document.getElementById('diag-body');
+  const head = document.getElementById('diag-head');
+  const wrap = document.getElementById('diag');
+
+  badge.textContent = unmappable.length;
+  badge.classList.toggle('zero', unmappable.length === 0);
+
+  body.innerHTML = '';
+  if (!unmappable.length) {
+    body.innerHTML = `<div style="padding:8px 0;color:var(--text-muted);font-style:italic">All rows geocoded successfully.</div>`;
+  } else {
+    // Sort: dentists first, then ceramists; within, by location
+    const sorted = [...unmappable].sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'dentist' ? -1 : 1;
+      return (a._why || '').localeCompare(b._why || '');
+    });
+    sorted.slice(0, 200).forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'diag-row';
+      div.innerHTML = `
+        <div class="rname">${escapeHtml(r.name)}</div>
+        <div class="rmeta">${escapeHtml(r.type)} · ${escapeHtml(r._why)}</div>
+      `;
+      body.appendChild(div);
+    });
+    if (sorted.length > 200) {
+      const more = document.createElement('div');
+      more.className = 'diag-row';
+      more.style.color = 'var(--text-muted)';
+      more.style.fontStyle = 'italic';
+      more.textContent = `…and ${sorted.length - 200} more`;
+      body.appendChild(more);
+    }
+  }
+
+  head.onclick = () => wrap.classList.toggle('open');
+}
+
+// ============================================================
+// Search
+// ============================================================
+function buildSearch() {
+  const input = document.getElementById('search');
+  const results = document.getElementById('search-results');
+
+  function search() {
+    const q = input.value.trim().toLowerCase();
+    results.innerHTML = '';
+    if (q.length < 2) {
+      results.classList.remove('visible');
+      return;
+    }
+    const matches = allRecords.filter(r => {
+      const hay = [r.name, r.practice, r.lab, r.city, r.state, r.country, r.celebrity_clients].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    }).slice(0, 30);
+
+    if (!matches.length) {
+      results.innerHTML = `<div class="result-item" style="color:var(--text-muted);font-style:italic">No matches</div>`;
+    } else {
+      for (const r of matches) {
+        const item = document.createElement('div');
+        item.className = 'result-item';
+        const loc = [r.city, r.state, r.country].filter(Boolean).join(', ');
+        item.innerHTML = `<div class="rname">${escapeHtml(r.name)}</div><div class="rmeta">${escapeHtml(loc)} · ${escapeHtml(TIER_LABELS[r.tier]?.label || r.tier)}</div>`;
+        item.addEventListener('click', () => {
+          map.setView([r.lat, r.lng], 13, { animate: true });
+          setTimeout(() => {
+            clusterGroup.eachLayer(m => {
+              if (m._record === r) {
+                clusterGroup.zoomToShowLayer(m, () => m.openPopup());
+              }
+            });
+          }, 300);
+          results.classList.remove('visible');
+          input.value = r.name;
+        });
+        results.appendChild(item);
+      }
+    }
+    results.classList.add('visible');
+  }
+
+  input.addEventListener('input', search);
+  input.addEventListener('focus', () => { if (input.value.length >= 2) search(); });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-box') && !e.target.closest('#search-results')) {
+      results.classList.remove('visible');
+    }
+  });
+
+  // Type toggle
+  document.querySelectorAll('#type-toggle .toggle-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#type-toggle .toggle-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      activeType = b.dataset.type;
+      applyFilters();
+      buildGaps();
+      // Hide curated filter sections when NPI is the active type, show otherwise
+      const tierSec = document.getElementById('curated-tier-section');
+      const ceraSec = document.getElementById('curated-ceramist-section');
+      if (activeType === 'npi') {
+        tierSec.style.display = 'none';
+        ceraSec.style.display = 'none';
+        const target = document.getElementById('npi-section');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        tierSec.style.display = '';
+        ceraSec.style.display = '';
+      }
+    });
+  });
+}
+
+// ============================================================
+// Refresh
+// ============================================================
+async function refresh() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('loading');
+  try {
+    await loadData(true);
+    buildFilters();
+    applyFilters();
+    buildDiagnostics();
+    buildGaps();
+    setSyncedNow();
+  } catch (e) {
+    console.error(e);
+    showError('Refresh failed — check connection or Sheet permissions.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+// ============================================================
+// NPI Registry on-demand loading
+// ============================================================
+let npiIndex = null;
+let npiLoadedStates = new Set();
+let npiRecords = []; // separate from allRecords for performance
+let activeNPISpecialties = new Set(NPI_CODES); // all on by default
+// Freshness filter — per-year buckets for 2022-2026, default = recently active (f1a-f1e + f2)
+const NPI_FRESHNESS = {
+  f1a: { label: 'Updated 2026', sub: 'this year',                 color: '#0C4E54' },
+  f1b: { label: 'Updated 2025', sub: 'last year',                 color: '#1A6E73' },
+  f1c: { label: 'Updated 2024', sub: 'two years ago',             color: '#2F8F92' },
+  f1d: { label: 'Updated 2023', sub: 'three years ago',           color: '#4FAEAA' },
+  f1e: { label: 'Updated 2022', sub: 'four years ago',            color: '#6BC2A8' },
+  f2:  { label: 'Updated 2018–2021', sub: 'Likely active',        color: '#5BA85F' },
+  f3:  { label: 'Updated 2010–2017', sub: 'Uncertain',            color: '#C28B00' },
+  f4:  { label: 'Pre-2010 / never',  sub: 'Likely retired',       color: '#8B5A2B' },
+};
+const NPI_FRESH_ACTIVE = ['f1a', 'f1b', 'f1c', 'f1d', 'f1e', 'f2'];
+const NPI_FRESH_ALL    = ['f1a', 'f1b', 'f1c', 'f1d', 'f1e', 'f2', 'f3', 'f4'];
+let activeNPIFreshness = new Set(NPI_FRESH_ACTIVE);
+
+async function loadNPIIndex() {
+  if (npiIndex) return npiIndex;
+  try {
+    const res = await fetch('npi/index.json');
+    npiIndex = await res.json();
+    return npiIndex;
+  } catch (e) {
+    console.error('NPI index failed:', e);
+    return null;
+  }
+}
+
+async function loadNPIState(state) {
+  if (npiLoadedStates.has(state)) return 0;
+  try {
+    // CA is split into 3 sub-shards because the single file >10MB triggers an S3 redirect that strips CORS headers
+    let recs;
+    if (state === 'CA') {
+      const parts = await Promise.all([1, 2, 3].map(i => fetch(`npi/CA_${i}.json`).then(r => r.json())));
+      recs = parts.flat();
+    } else {
+      const res = await fetch(`npi/${state}.json`);
+      recs = await res.json();
+    }
+    for (const r of recs) {
+      const spec = NPI_SPECIALTIES[r.sp];
+      npiRecords.push({
+        // marker spec
+        
+        type: 'npi',
+        tier: 'npi',
+        spCode: r.sp,
+        freshness: r.fr || 'f4',
+        lastUpdate: r.lu || '',
+        name: r.n,
+        practice: r.p || '',
+        address: r.a || '',
+        city: r.c || '',
+        state: r.s || '',
+        zip: r.z || '',
+        country: 'USA',
+        phone: r.ph || '',
+        specialty: spec ? spec.label : r.sp,
+        sources: 'CMS NPI Registry',
+        npi_id: r.id,
+        lat: r.lat,
+        lng: r.lng,
+        _geo_method: 'npi_zip',
+      });
+    }
+    npiLoadedStates.add(state);
+    return recs.length;
+  } catch (e) {
+    console.error('NPI state load failed:', state, e);
+    return 0;
+  }
+}
+
+function renderNPILoadedStates() {
+  const el = document.getElementById('npi-loaded-states');
+  if (!el) return;
+  if (npiLoadedStates.size === 0) {
+    el.textContent = '';
+    return;
+  }
+  const states = [...npiLoadedStates].sort();
+  el.textContent = `Loaded: ${states.join(', ')} · ${npiRecords.length.toLocaleString()} dentists`;
+  document.getElementById('npi-count').textContent = `${npiRecords.length.toLocaleString()} loaded`;
+}
+
+async function setupNPI() {
+  const idx = await loadNPIIndex();
+  if (!idx) return;
+
+  const sel = document.getElementById('npi-state');
+  // Populate state dropdown sorted by count desc
+  for (const [st, count] of Object.entries(idx.states)) {
+    const opt = document.createElement('option');
+    opt.value = st;
+    opt.textContent = `${st} — ${count.toLocaleString()}`;
+    sel.appendChild(opt);
+  }
+
+  // Build freshness + specialty filter checkboxes — visible immediately
+  buildNPIFreshnessFilters(idx);
+  buildNPISpecialtyFilters(idx);
+  document.getElementById('npi-specialty-filters').style.display = 'block';
+
+  document.getElementById('npi-load-all').addEventListener('click', async () => {
+    const btn = document.getElementById('npi-load-all');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    const states = Object.keys(idx.states);
+    let done = 0;
+    // Load in parallel batches of 8
+    const BATCH = 8;
+    for (let i = 0; i < states.length; i += BATCH) {
+      const slice = states.slice(i, i + BATCH);
+      await Promise.all(slice.map(s => loadNPIState(s)));
+      done += slice.length;
+      btn.textContent = `Loading… ${done}/${states.length}`;
+      renderNPILoadedStates();
+    }
+    btn.textContent = `Loaded · ${npiRecords.length.toLocaleString()} dentists`;
+    btn.style.background = '#0C4E54';
+    document.getElementById('npi-state-picker').style.display = 'block';
+    activeTiers.add('npi');
+    applyFilters();
+  });
+
+  sel.addEventListener('change', async () => {
+    const v = sel.value;
+    if (!v) return;
+    sel.disabled = true;
+    await loadNPIState(v);
+    sel.value = '';
+    sel.disabled = false;
+    activeTiers.add('npi');
+    renderNPILoadedStates();
+    applyFilters();
+  });
+
+  // Auto-load all NPI states on page open so users see them immediately
+  setTimeout(() => {
+    document.getElementById('npi-load-all').click();
+  }, 500);
+}
+
+function buildNPIFreshnessFilters(idx) {
+  const wrap = document.getElementById('npi-freshness-filters');
+  wrap.innerHTML = '';
+  const fcounts = idx.freshness || {};
+  const totalNPI = Object.values(fcounts).reduce((a, b) => a + b, 0);
+
+  const headerRow = document.createElement('div');
+  headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px';
+  headerRow.innerHTML = `
+    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600">Record freshness</span>
+  `;
+  wrap.appendChild(headerRow);
+
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:11px;color:var(--text-muted);margin:-4px 0 8px;line-height:1.4';
+  hint.innerHTML = 'Filter by when the NPI record was last updated. Default shows likely-active records only.';
+  wrap.appendChild(hint);
+
+  const listEl = document.createElement('div');
+  wrap.appendChild(listEl);
+
+  const codes = NPI_FRESH_ALL;
+  for (const code of codes) {
+    const meta = NPI_FRESHNESS[code];
+    const count = fcounts[code] || 0;
+    const isActive = activeNPIFreshness.has(code);
+    const row = document.createElement('div');
+    row.className = 'filter-row ' + (isActive ? 'active' : 'inactive');
+    row.dataset.fr = code;
+    row.innerHTML = `
+      <div class="left">
+        <span class="check"></span>
+        <span class="dot" style="background:${meta.color}"></span>
+        <span><span style="font-weight:500">${meta.label}</span> <span style="color:var(--text-muted);font-size:11px;font-weight:400">· ${meta.sub}</span></span>
+      </div>
+      <span class="count">${count.toLocaleString()}</span>
+    `;
+    row.addEventListener('click', () => {
+      if (activeNPIFreshness.has(code)) {
+        activeNPIFreshness.delete(code);
+        row.classList.remove('active'); row.classList.add('inactive');
+      } else {
+        activeNPIFreshness.add(code);
+        row.classList.add('active'); row.classList.remove('inactive');
+      }
+      applyFilters();
+    });
+    listEl.appendChild(row);
+  }
+
+  // Quick toggles
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;margin-top:8px;font-size:11px';
+  actions.innerHTML = `
+    <button id="npi-fr-active" style="flex:1;padding:5px 8px;border:1px solid var(--border);background:#fff;border-radius:5px;cursor:pointer;font-size:11px">Active only</button>
+    <button id="npi-fr-all" style="flex:1;padding:5px 8px;border:1px solid var(--border);background:#fff;border-radius:5px;cursor:pointer;font-size:11px">All ${totalNPI.toLocaleString()}</button>
+  `;
+  wrap.appendChild(actions);
+  document.getElementById('npi-fr-active').addEventListener('click', () => {
+    activeNPIFreshness = new Set(NPI_FRESH_ACTIVE);
+    listEl.querySelectorAll('.filter-row').forEach(r => {
+      const c = r.dataset.fr;
+      if (activeNPIFreshness.has(c)) { r.classList.add('active'); r.classList.remove('inactive'); }
+      else { r.classList.remove('active'); r.classList.add('inactive'); }
+    });
+    applyFilters();
+  });
+  document.getElementById('npi-fr-all').addEventListener('click', () => {
+    activeNPIFreshness = new Set(NPI_FRESH_ALL);
+    listEl.querySelectorAll('.filter-row').forEach(r => { r.classList.add('active'); r.classList.remove('inactive'); });
+    applyFilters();
+  });
+}
+
+function buildNPISpecialtyFilters(idx) {
+  const wrap = document.getElementById('npi-specialty-filters');
+  wrap.innerHTML = '';
+
+  // Header row with title + sort dropdown
+  const headerRow = document.createElement('div');
+  headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px';
+  headerRow.innerHTML = `
+    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600">NPI specialty</span>
+    <select id="npi-spec-sort" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:#fff;color:var(--text);cursor:pointer">
+      <option value="count">Sort: Most dentists</option>
+      <option value="count-asc">Sort: Fewest dentists</option>
+      <option value="alpha">Sort: A → Z</option>
+      <option value="group">Sort: Specialists first</option>
+    </select>
+  `;
+  wrap.appendChild(headerRow);
+
+  // Hint line
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:11px;color:var(--text-muted);margin:-4px 0 8px;line-height:1.4';
+  hint.innerHTML = 'Click any specialty to toggle on/off. Hover for <span style="font-weight:600">Only</span> button to isolate one type.';
+  wrap.appendChild(hint);
+
+  const listEl = document.createElement('div');
+  listEl.id = 'npi-spec-list';
+  wrap.appendChild(listEl);
+
+  // Get counts from idx.specialties (full-name keys) — map back to codes
+  const codeCounts = {};
+  for (const [name, code] of Object.entries(idx.specialty_codes)) {
+    codeCounts[code] = idx.specialties[name] || 0;
+  }
+
+  // GP/DDS are general; everything else is a specialist
+  const GENERAL_CODES = new Set(['GP', 'DDS']);
+
+  function getSorted(mode) {
+    const codes = NPI_CODES.slice();
+    if (mode === 'count') return codes.sort((a, b) => (codeCounts[b] || 0) - (codeCounts[a] || 0));
+    if (mode === 'count-asc') return codes.sort((a, b) => (codeCounts[a] || 0) - (codeCounts[b] || 0));
+    if (mode === 'alpha') return codes.sort((a, b) => NPI_SPECIALTIES[a].label.localeCompare(NPI_SPECIALTIES[b].label));
+    if (mode === 'group') {
+      return codes.sort((a, b) => {
+        const ga = GENERAL_CODES.has(a) ? 1 : 0;
+        const gb = GENERAL_CODES.has(b) ? 1 : 0;
+        if (ga !== gb) return ga - gb; // specialists (0) before general (1)
+        return (codeCounts[b] || 0) - (codeCounts[a] || 0);
+      });
+    }
+    return codes;
+  }
+
+  function renderRows(mode) {
+    listEl.innerHTML = '';
+    const sorted = getSorted(mode);
+    let lastGroup = null;
+    for (const code of sorted) {
+      // Insert group divider when grouping mode
+      if (mode === 'group') {
+        const group = GENERAL_CODES.has(code) ? 'general' : 'specialist';
+        if (group !== lastGroup) {
+          const div = document.createElement('div');
+          div.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin:8px 0 4px;font-weight:600;opacity:0.7';
+          div.textContent = group === 'specialist' ? 'Specialists' : 'General';
+          listEl.appendChild(div);
+          lastGroup = group;
+        }
+      }
+      const spec = NPI_SPECIALTIES[code];
+      const count = codeCounts[code] || 0;
+      const isActive = activeNPISpecialties.has(code);
+      const row = document.createElement('div');
+      row.className = 'filter-row ' + (isActive ? 'active' : 'inactive');
+      row.dataset.spec = code;
+      row.innerHTML = `
+        <div class="left">
+          <span class="check"></span>
+          <span class="dot" style="background:${spec.color}"></span>
+          <span>${spec.label}</span>
+        </div>
+        <div style="display:flex;align-items:center">
+          <button class="only-btn" data-only="${code}" title="Show only this specialty">Only</button>
+          <span class="count">${count.toLocaleString()}</span>
+        </div>
+      `;
+      row.addEventListener('click', (e) => {
+        // 'Only' button — isolate this specialty
+        if (e.target.classList.contains('only-btn')) {
+          e.stopPropagation();
+          activeNPISpecialties = new Set([code]);
+          listEl.querySelectorAll('.filter-row').forEach(r => {
+            if (r.dataset.spec === code) {
+              r.classList.add('active'); r.classList.remove('inactive');
+            } else {
+              r.classList.remove('active'); r.classList.add('inactive');
+            }
+          });
+          applyFilters();
+          return;
+        }
+        if (activeNPISpecialties.has(code)) {
+          activeNPISpecialties.delete(code);
+          row.classList.remove('active');
+          row.classList.add('inactive');
+        } else {
+          activeNPISpecialties.add(code);
+          row.classList.add('active');
+          row.classList.remove('inactive');
+        }
+        applyFilters();
+      });
+      listEl.appendChild(row);
+    }
+  }
+
+  renderRows('count');
+  document.getElementById('npi-spec-sort').addEventListener('change', e => {
+    renderRows(e.target.value);
+  });
+
+  // Add 'Show all' / 'Hide all' shortcuts
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;margin-top:8px;font-size:11px';
+  actions.innerHTML = `
+    <button id="npi-spec-all" style="flex:1;padding:5px 8px;border:1px solid var(--border);background:#fff;border-radius:5px;cursor:pointer;font-size:11px">Show all</button>
+    <button id="npi-spec-none" style="flex:1;padding:5px 8px;border:1px solid var(--border);background:#fff;border-radius:5px;cursor:pointer;font-size:11px">Hide all</button>
+  `;
+  wrap.appendChild(actions);
+  document.getElementById('npi-spec-all').addEventListener('click', () => {
+    activeNPISpecialties = new Set(NPI_CODES);
+    listEl.querySelectorAll('.filter-row').forEach(r => { r.classList.add('active'); r.classList.remove('inactive'); });
+    applyFilters();
+  });
+  document.getElementById('npi-spec-none').addEventListener('click', () => {
+    activeNPISpecialties = new Set();
+    listEl.querySelectorAll('.filter-row').forEach(r => { r.classList.remove('active'); r.classList.add('inactive'); });
+    applyFilters();
+  });
+}
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  try {
+    await loadGeo();
+    await loadData(false);
+    initMap();
+    buildFilters();
+    applyFilters();
+    buildSearch();
+    buildDiagnostics();
+    buildGaps();
+    setSyncedNow();
+    setupNPI();
+    document.getElementById('refresh-btn').addEventListener('click', refresh);
+    document.getElementById('loading').classList.add('hidden');
+
+    // Mark stale after 1 hour
+    setInterval(() => {
+      const t = document.getElementById('sync-time');
+      const last = parseInt(t.dataset.ts || '0');
+      if (last && Date.now() - last > 60 * 60 * 1000) t.classList.add('stale');
+    }, 60 * 1000);
+  } catch (e) {
+    console.error(e);
+    setLoadingMsg('Failed to load — check console. Retrying in 5s…');
+    setTimeout(init, 5000);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
